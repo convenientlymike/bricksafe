@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    # Pure-Python, OS-independent → Linux is sufficient + cheapest. (Public repo: CI is free.)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: uv venv && uv pip install -e ".[dev]"
+      - name: Lint (ruff)
+        run: uv run ruff check src tests examples
+      - name: Typecheck (mypy --strict)
+        run: uv run mypy src
+      - name: Test (pytest)
+        run: uv run pytest -q
+      - name: Demo runs
+        run: uv run python examples/demo.py
